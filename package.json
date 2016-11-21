@@ -1,0 +1,10 @@
+{
+  "name": "CDN-on-Prem",
+  "version": "0.0.1",
+  "author": "RedBrick Software",
+  "dependencies": {
+    "body-parser": "*",
+    "express": "*",
+    "mongoose": "*"
+  }
+}
