@@ -1,2 +1,2 @@
 # CDNonPrem
-Local CDN for on premise hosting
+Local CDN for on premise hosting.
