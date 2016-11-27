@@ -2,9 +2,18 @@
   "name": "CDN-on-Prem",
   "version": "0.0.1",
   "author": "RedBrick Software",
+  "start": "npm server.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/redbricksoftware/CDN-on-Prem"
+  },
   "dependencies": {
     "body-parser": "*",
     "express": "*",
-    "mongoose": "*"
+    "mongoose": "*",
+    "gridfs-stream": "*",
+    "mustache": "*",
+    "mongodb": "*"
   }
 }
