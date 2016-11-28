@@ -12,7 +12,8 @@ var libraryFolder = '/Users/BryceD/Documents/cdnlibrary/';
 app.use(express.static(libraryFolder));
 
 app.get("/", function (request, response) {
-    response.send("CDN Home");
+    var currentDate = new Date();
+    response.send("CDN Home" + currentDate);
 });
 
 app.get("/refresh", function (request, response) {
@@ -63,21 +64,41 @@ refreshLibrary = function () {
                 if (err) {
                     console.log(err);
                 }
+                var currentDate = new Date();
+
                 for (x = 0; x < files.length; x++) {
                     console.log(files[x]);
+
+                    //Remove files from library that are deleted
                     if (files[x].metadata) {
-                        if (files[x].metadata.deleted) {
+                        if (files[x].metadata.deletedEffectiveDate) {
+                            var deletedEffectiveDate = new Date(files[x].metadata.deletedEffectiveDate);
+                        } else {
+                            var deletedEffectiveDate = new Date(2000, 1, 1);
+                        }
+                        ;
+
+                        if (files[x].metadata.deleted && currentDate >= deletedEffectiveDate) {
+                            //get deletion effective date
                             fs.unlink(libraryFolder + files[x].filename, function (err) {
                                 if (err) {
-                                    console.log('file does not exist');
+                                    console.log('file does not exist: ' + this.fileName);
                                     //console.log(err);
                                 } else {
-                                    console.log('file deleted successfully');
+                                    console.log('file deleted successfully: ' + this.fileName);
                                 }
-                            });
+                            }.bind({fileName: files[x].filename}));
                         }
-
                     }
+
+                    fs.stat(libraryFolder + files[x].fileName, function (err, stats) {
+                        //console.log(stats);
+
+                        if (err) {
+                            return console.error('file not found: ' + err);
+                        }
+                    }.bind({fileName: files[x].filename}));
+
                 }
             });
 
