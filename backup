@@ -1,0 +1,288 @@
+
+app.get('/sample', function (request, response) {
+    var conn = mongoose.createConnection('mongodb://' + mongoURI + ':27017/testdb');
+    conn.on('error', console.error.bind(console, 'connection error:'));
+    conn.once('open', function () {
+
+        var gfs = Grid(conn.db);
+
+        var readStream = gfs.createReadStream({
+            _id: 'mongoid'
+        });
+        readStream.pipe(response);
+    }, function (err) {
+        console.log(err);
+    });
+});
+
+
+responseFile = function(fileName, response) {
+    var filePath =  "/path/to/archive.rar" // or any file format
+
+    console.log('abc');
+    // Check if file specified by the filePath exists
+    fs.exists(filePath, function(exists){
+        if (exists) {
+            // Content-type is very interesting part that guarantee that
+            // Web browser will handle response in an appropriate manner.
+            response.writeHead(200, {
+                "Content-Type": "application/octet-stream",
+                "Content-Disposition" : "attachment; filename=" + file});
+            fs.createReadStream(filePath).pipe(response);
+        } else {
+            response.writeHead(400, {"Content-Type": "text/plain"});
+            response.end("ERROR File does NOT Exists");
+        }
+    });
+};
+
+
+refreshLibrary2 = function () {
+    console.log('refresh');
+    fs.readdir(libraryFolder, function (err, files) {
+        if (err) {
+            console.error('Could not list the directory.', err);
+            //process.exit( 1 );
+        }
+        else {
+
+            files.forEach(function (file, index) {
+                // Make one pass and make the file complete
+                //var fromPath = path.join(moveFrom, file);
+                //var toPath = path.join(moveTo, file);
+                console.log(file);
+            });
+        }
+    });
+};
+
+refreshLibrary3 = function () {
+
+    var id = '583b8e9ddb15e97b1da6e0ab';
+
+    //check if file in memory
+    var file = memCache.get(id);
+    if (file) {
+        console.log('file found');
+        console.log(file);
+    } else {
+        var conn = mongoose.createConnection('mongodb://' + mongoURI + ':27017/testdb');
+        conn.on('error', console.error.bind(console, 'connection error:'));
+        conn.once('open', function () {
+
+                var gfs = Grid(conn.db);
+
+                var buffer = '';
+
+
+                // streaming from gridfs
+                console.log('start readstream');
+                var readStream = gfs.createReadStream({
+                    _id: id
+                });
+
+                console.log('readable');
+                readStream.on('readable', function (buffer) {
+
+                });
+
+                var data = '';
+                console.log('data buffer');
+                readStream.on('data', function (buffer) {
+                    data += buffer;
+                });
+
+                console.log('end');
+                readStream.on('end', function () {
+                    console.log('some final output2 ' + data);
+                    //data is the file.
+
+                    console.log('file not found');
+                    //cache file to memory.
+                    memCache.put(id, data, (hoursCacheTime * 60 * 60 * 1000), function (key, value) {
+                        console.log(key + ' expired.');
+                    });
+                });
+
+            },
+            function (err) {
+                console.log(err);
+            });
+    }
+};
+
+
+refreshLibrary = function () {
+    //mongoose.connect('mongodb://localhost/test');
+
+
+    var conn = mongoose.createConnection('mongodb://' + mongoURI + ':27017/testdb');
+    conn.on('error', console.error.bind(console, 'connection error:'));
+    conn.once('open', function () {
+
+
+            var gfs = Grid(conn.db);
+
+
+            //gfs.files.find({'metadata.deleted': false}).toArray(function (err, files) {
+            //return all files
+            gfs.files.find({}).toArray(function (err, files) {
+                if (err) {
+                    console.log(err);
+                }
+                var currentDate = new Date();
+
+                for (x = 0; x < files.length; x++) {
+                    console.log(files[x]);
+
+                    //Remove files from library that are deleted
+                    if (files[x].metadata) {
+                        if (files[x].metadata.deletedEffectiveDate) {
+                            var deletedEffectiveDate = new Date(files[x].metadata.deletedEffectiveDate);
+                        } else {
+                            var deletedEffectiveDate = new Date(2000, 1, 1);
+                        }
+                        ;
+
+                        if (files[x].metadata.deleted && currentDate >= deletedEffectiveDate) {
+                            //get deletion effective date
+                            fs.unlink(libraryFolder + files[x].filename, function (err) {
+                                if (err) {
+                                    console.log('file does not exist: ' + this.fileName);
+                                    //console.log(err);
+                                } else {
+                                    console.log('file deleted successfully: ' + this.fileName);
+                                }
+                            }.bind({fileName: files[x].filename}));
+                        }
+                    }
+
+                    fs.stat(libraryFolder + files[x].fileName, function (err, stats) {
+                        console.log(stats);
+
+                        if (err) {
+                            return console.error('file not found: ' + this.fileName + '. Downloading file to library');
+
+                            // streaming to gridfs
+                            var readstream = gfs.createReadStream({
+                                _id: '583b8e9ddb15e97b1da6e0ab'
+                            });
+                            //readstream.pipe(response);
+
+                            /*
+                             fileReadStream.on('error', function(err){
+                             console.log('error: ' + err);
+                             });
+
+                             //write the file stream to GridFS
+                             fileReadStream.on('readable', function () {
+                             console.log('readable');
+                             while (null !== (chunk = readStream.read())) {
+                             console.log(chunk);
+                             }
+                             });
+                             */
+
+                        }
+                    }.bind({fileName: files[x].filename}));
+
+                }
+            });
+
+            /*console.log('totally connected!');
+
+             //TODO: don't write a file, setup a URL to write the file and check if file already in GridFS before overwriting
+             //display all files in dir
+             fs.readdir(libraryFolder, function (err, files) {
+             if (err) {
+             console.error("Could not list the directory.", err);
+             }
+             else {
+
+             files.forEach(function (file, index) {
+             console.log(file);
+             });
+             }
+             });
+
+             //Library location
+             console.log(libraryFolder);
+
+             // streaming to gridfs
+             var writestream = gfs.createWriteStream();
+             var readStream = fs.createReadStream(libraryFolder + 'sample.txt');
+             readStream.on('error', function(err){
+             console.log('error: ' + err);
+             });
+
+             //write the file stream to GridFS
+             readStream.on('readable', function () {
+             var writestream = gfs.createWriteStream({
+             filename: 'sampleFileName', //TODO: make variable
+             metadata: {'modifiedDate':null, 'deleted': false}
+             });
+             readStream.pipe(writestream);
+             });*/
+
+
+            //conn.close();
+        },
+        function (err) {
+            console.log(err);
+        }
+    );
+
+};
+
+
+
+app.get('*', function (req, res) {
+
+    var keyList = memCache.keys();
+
+    console.log('keylist: ' + keyList);
+
+    var fileRequested = req.path;
+    var fileName = fileRequested.substr(1, fileRequested.length - 1);
+    fileRequested = path.join(libraryFolder, fileRequested);
+    console.log('file requested: ' + fileRequested);
+
+    var file = memCache.get(fileName);
+    console.log('file: ' + file);
+    if (file) {
+        console.log('file found');
+        console.log(file);
+        res.send();
+    } else {
+
+        var fileReadStream = fs.createReadStream(fileRequested);
+
+        fileReadStream.on('error', function () {
+            console.log('404');
+            console.log('the file was not found: ' + fileRequested);
+            res.writeHead(404, {'Content-Type': 'text/plain'});
+            res.end('ERROR File does NOT Exists');
+        });
+
+        fileReadStream.on('readable', function(){
+            var stat = fs.statSync(fileRequested);
+
+            /*
+            res.writeHead(200, {
+                'Content-Type': 'text/plain',
+                'Content-Length': stat.size
+            });
+            */
+
+            fileReadStream.pipe(res);
+        });
+
+        //memCache.put(fileName, data, (hoursCacheTime * 60 * 60 * 1000), function (key, value) {
+        //    console.log(key + ' expired.');
+        //});
+
+    }
+
+    //res.send('abc');
+
+});
