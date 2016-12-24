@@ -11,9 +11,11 @@
   "dependencies": {
     "body-parser": "*",
     "express": "*",
+    "morgan": "*",
     "mongoose": "*",
     "gridfs-stream": "*",
     "mustache": "*",
-    "mongodb": "*"
+    "mongodb": "*",
+    "memory-cache": "*"
   }
 }
