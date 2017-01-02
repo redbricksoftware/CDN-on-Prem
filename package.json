@@ -16,6 +16,9 @@
     "gridfs-stream": "*",
     "mustache": "*",
     "mongodb": "*",
-    "memory-cache": "*"
+    "memory-cache": "*",
+    "mocha": "*",
+    "chai": "*",
+    "chai-http": "*"
   }
 }
